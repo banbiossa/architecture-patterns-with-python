@@ -17,7 +17,7 @@ def test_repository_can_save_a_batch(session):
 
 def insert_order_lines(session):
     session.execute(
-        "INSERT INTO order_lines (sku, qty, order_id) VALUES "
+        "INSERT INTO order_lines (sku, qty, orderid) VALUES "
         '("SMALL_TABLE", 2, "order-1")'
     )
 
@@ -30,7 +30,7 @@ def insert_order_lines(session):
 
 def insert_batch(session, batch_id):
     session.execute(
-        "INSERT INTO batches (reaference, sku, _purchased_quantity, eta) VALUES "
+        "INSERT INTO batches (reference, sku, _purchased_quantity, eta) VALUES "
         ' (:batch_id, "SMALL_TABLE", 20, NULL)',
         dict(batch_id=batch_id),
     )
@@ -61,5 +61,5 @@ def test_repository_can_retrieve_a_batch_with_allocations(session):
     expected = model.Batch("batch1", "SMALL_TABLE", qty=20, eta=None)
     assert retrieved == expected
     assert retrieved.sku == expected.sku
-    assert retrieved._purcahsed_quantity == expected._purcahsed_quantity
-    assert retrieved.allocations == {model.OrderLine("order1", "SMALL_TABLE", 2)}
+    assert retrieved._purchased_quantity == expected._purchased_quantity
+    assert retrieved._allocations == {model.OrderLine("order-1", "SMALL_TABLE", 2)}
