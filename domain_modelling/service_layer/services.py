@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from domain_modelling import model
-from domain_modelling.model import Batch, OrderLine
-from domain_modelling.repository import AbstractRepository
+from domain_modelling.adapters.repository import AbstractRepository
+from domain_modelling.domain import model
+from domain_modelling.domain.model import Batch, OrderLine
 
 
 class InvalidSku(Exception):

@@ -1,6 +1,6 @@
 import abc
 
-from domain_modelling import model
+from domain_modelling.domain import model
 
 
 class AbstractRepository(abc.ABC):

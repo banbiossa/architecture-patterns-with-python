@@ -1,7 +1,15 @@
+from datetime import date, timedelta
+
 import pytest
 
-from domain_modelling import model, services
-from domain_modelling.repository import FakeRepository
+from domain_modelling.adapters.repository import FakeRepository
+from domain_modelling.domain import model
+from domain_modelling.domain.model import Batch, OrderLine
+from domain_modelling.service_layer import services
+
+today = date.today()
+tomorrow = date.today() + timedelta(days=1)
+later = date.today() + timedelta(days=20)
 
 
 class FakeSession:
@@ -9,6 +17,32 @@ class FakeSession:
 
     def commit(self):
         self.committed = True
+
+
+# domain layer test
+def test_prefers_current_stock_batches_to_shipments():
+    in_stock_batch = Batch("in-stock-batch", "RETRO_CLOCK", 100, eta=None)
+    shipment_batch = Batch("shipment-batch", "RETRO_CLOCK", 100, eta=tomorrow)
+
+    line = OrderLine("order-123", "RETRO_CLOCK", 10)
+    model.allocate(line, [in_stock_batch, shipment_batch])
+
+    assert in_stock_batch.available_quantity == 90
+    assert shipment_batch.available_quantity == 100
+
+
+# service-layer test
+def test_prefers_warehouse_batches_to_shipments():
+    in_stock_batch = Batch("in-stock-batch", "RETRO_CLOCK", 100, eta=None)
+    shipment_batch = Batch("shipment-batch", "RETRO_CLOCK", 100, eta=tomorrow)
+    repo = FakeRepository([in_stock_batch, shipment_batch])
+    session = FakeSession()
+
+    line = OrderLine("order-123", "RETRO_CLOCK", 10)
+    services.allocate(line, repo, session)
+
+    assert in_stock_batch.available_quantity == 90
+    assert shipment_batch.available_quantity == 100
 
 
 def test_returns_allocation():

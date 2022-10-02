@@ -1,7 +1,8 @@
+from datetime import date, timedelta
+
 import pytest
 
-from domain_modelling.model import Batch, OrderLine, allocate, OutOfStock
-from datetime import date, timedelta
+from domain_modelling.domain.model import Batch, OrderLine, OutOfStock, allocate
 
 today = date.today()
 tomorrow = date.today() + timedelta(days=1)

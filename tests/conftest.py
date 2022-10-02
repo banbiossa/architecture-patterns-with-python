@@ -10,9 +10,7 @@ from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import clear_mappers, sessionmaker
 
 from domain_modelling import config
-
-# from allocation.adapters.orm import metadata, start_mappers
-from domain_modelling.orm import metadata, start_mappers
+from domain_modelling.adapters.orm import metadata, start_mappers
 
 
 @pytest.fixture

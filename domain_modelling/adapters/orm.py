@@ -4,7 +4,7 @@ from sqlalchemy import Column, Date, ForeignKey, Integer, MetaData, String, Tabl
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import mapper, relationship
 
-from domain_modelling import model
+from domain_modelling.domain import model
 
 logger = logging.getLogger(__name__)
 
