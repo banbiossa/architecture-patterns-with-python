@@ -1,13 +1,11 @@
 import logging
 
-from sqlalchemy import Column, Date, ForeignKey, Integer, MetaData, String, Table, event
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import Column, Date, ForeignKey, Integer, MetaData, String, Table
 from sqlalchemy.orm import mapper, relationship
 
 from domain_modelling.domain import model
 
 logger = logging.getLogger(__name__)
-
 
 metadata = MetaData()
 
@@ -32,11 +30,11 @@ batches = Table(
     metadata,
     Column("id", Integer, primary_key=True, autoincrement=True),
     Column("reference", String(255)),
-    # Column("sku", ForeignKey("products.sku")),
-    Column("sku", String(255)),
+    Column("sku", ForeignKey("products.sku")),
     Column("_purchased_quantity", Integer, nullable=False),
     Column("eta", Date, nullable=True),
 )
+
 allocations = Table(
     "allocations",
     metadata,
@@ -60,5 +58,6 @@ def start_mappers():
             )
         },
     )
-
-    # mapper()
+    mapper(
+        model.Product, products, properties={"batches": relationship(batches_mapper)}
+    )
