@@ -19,14 +19,15 @@ class FakeSession:
         self.committed = True
 
 
-class FakeRepository(repository.AbstractRepository):
+class FakeRepository(repository.AbstractProductRepository):
     def __init__(self, batches):
+        super(FakeRepository, self).__init__()
         self._batches = set(batches)
 
-    def add(self, batch):
+    def _add(self, batch):
         self._batches.add(batch)
 
-    def get(self, reference):
+    def _get(self, reference):
         return next(b for b in self._batches if b.reference == reference)
 
     def list(self):
@@ -113,10 +114,11 @@ from domain_modelling.service_layer import unit_of_work
 
 class FakeUnitOfWork(unit_of_work.AbstractUnitOfWork):
     def __init__(self):
+        super().__init__()
         self.batches = FakeRepository([])
         self.committed = False
 
-    def commit(self):
+    def _commit(self):
         self.committed = True
 
     def rollback(self):
