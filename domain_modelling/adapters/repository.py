@@ -1,5 +1,6 @@
 import abc
 
+from domain_modelling.adapters import orm
 from domain_modelling.domain import model
 
 
@@ -16,6 +17,16 @@ class AbstractProductRepository(abc.ABC):
         if product:
             self.seen.add(product)
         return product
+
+    def get_by_batchref(self, batchref: str) -> model.Product:
+        product = self._get_by_batchref(batchref)
+        if product:
+            self.seen.add(product)
+        return product
+
+    @abc.abstractmethod
+    def _get_by_batchref(self, batchref: str) -> model.Product:
+        raise NotImplementedError
 
     @abc.abstractmethod
     def _add(self, product: model.Product):
@@ -43,20 +54,15 @@ class SqlAlchemyRepository(AbstractProductRepository):
             .first()
         )
 
+    def _get_by_batchref(self, batchref: str) -> model.Product:
+        return (
+            self.session.query(model.Product)
+            .join(model.Batch)
+            .filter(
+                orm.batches.c.reference == batchref,
+            )
+            .first()
+        )
+
     def list(self):
         return self.session.query(model.Product).all()
-
-
-class FakeRepository(AbstractProductRepository):
-    def __init__(self, batches):
-        super().__init__()
-        self._batches = set(batches)
-
-    def _add(self, batch):
-        self._batches.add(batch)
-
-    def _get(self, reference):
-        return next(b for b in self._batches if b.reference == reference)
-
-    def list(self):
-        return list(self._batches)
