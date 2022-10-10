@@ -37,6 +37,29 @@ class FakeRepository(repository.AbstractProductRepository):
         )
 
 
+class FakeUnitOfWork(unit_of_work.AbstractUnitOfWork):
+    def __init__(self):
+        self.products = FakeRepository([])
+        self.committed = False
+
+    def _commit(self):
+        self.committed = True
+
+    def rollback(self):
+        pass
+
+
+class FakeUnitOfWorkWithFakeMessageBus(FakeUnitOfWork):
+    def __init__(self):
+        super().__init__()
+        self.events_published = []
+
+    def publish_events(self):
+        for product in self.products.seen:
+            while product.events:
+                self.events_published.append(product.events.pop(0))
+
+
 # domain layer test
 def test_prefers_current_stock_batches_to_shipments():
     in_stock_batch = Batch("in-stock-batch", "RETRO_CLOCK", 100, eta=None)
@@ -186,3 +209,27 @@ class TestChangeBatchQuantity:
 
         assert batch1.available_quantity == 5
         assert batch2.available_quantity == 30
+
+
+def test_reallocates_if_necessary_isolated():
+    uow = FakeUnitOfWorkWithFakeMessageBus()
+
+    events_history = [
+        events.BatchCreated("batch1", "ELEGANT-LAMP", 50, None),
+        events.BatchCreated("batch2", "ELEGANT-LAMP", 50, date.today()),
+        events.AllocationRequired("o1", "ELEGANT-LAMP", 20),
+        events.AllocationRequired("o2", "ELEGANT-LAMP", 20),
+    ]
+
+    for e in events_history:
+        messagebus.handle(e, uow)
+    [batch1, batch2] = uow.products.get(sku="ELEGANT-LAMP").batches
+    assert batch1.available_quantity == 10
+    assert batch2.available_quantity == 50
+
+    messagebus.handle(events.BatchQuantityChanged("batch1", 25), uow)
+
+    [reallocation_event] = uow.events_published
+    assert isinstance(reallocation_event, events.AllocationRequired)
+    assert reallocation_event.orderid in {"order1", "order2"}
+    assert reallocation_event.sku == "ELEGANT-LAMP"

@@ -91,7 +91,7 @@ class Product:
             return None
 
     def change_batch_quantity(self, ref: str, qty: int) -> None:
-        batch = next(b for b in self._batches if b.reference == ref)
+        batch = next(b for b in self.batches if b.reference == ref)
         batch._purchased_quantity = qty
         while batch.available_quantity < 0:
             line = batch.deallocate_one()
