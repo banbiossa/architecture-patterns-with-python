@@ -1,5 +1,6 @@
 import json
 import logging
+from dataclasses import asdict
 
 import redis
 
@@ -11,5 +12,5 @@ r = redis.Redis(**config.get_redis_host_and_port())
 
 
 def publish(channel, event: events.Event):
-    logger.debug("publishing %s to %s", event, channel)
+    logger.debug("publishing %s to %s", asdict(event), channel)
     r.publish(channel, json.dumps(asdict(event)))

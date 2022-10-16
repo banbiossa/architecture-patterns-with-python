@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from datetime import date
 from typing import List, Optional, Union
 
-from domain_modelling.domain import events
+from domain_modelling.domain import commands, events
 
 
 @dataclass(unsafe_hash=True)
@@ -62,16 +62,6 @@ class Batch:
         return not self.__gt__(other)
 
 
-def allocate(line: OrderLine, batches: List[Batch]) -> str:
-    try:
-        batch = next(b for b in sorted(batches) if b.can_allocate(line))
-    except StopIteration:
-        raise events.OutOfStock(f"Out of stock for sku {line.sku}")
-
-    batch.allocate(line)
-    return batch.reference
-
-
 class Product:
     def __init__(self, sku: str, batches: List[Batch], version_number: int = 0):
         self.sku = sku
@@ -103,6 +93,4 @@ class Product:
         batch._purchased_quantity = qty
         while batch.available_quantity < 0:
             line = batch.deallocate_one()
-            self.events.append(
-                events.AllocationRequired(line.orderid, line.sku, line.qty)
-            )
+            self.events.append(commands.Allocate(line.orderid, line.sku, line.qty))

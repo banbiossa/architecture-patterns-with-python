@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 
 from flask import Flask, jsonify, request
@@ -6,40 +7,40 @@ from sqlalchemy.orm import sessionmaker
 
 from domain_modelling import config
 from domain_modelling.adapters import orm, repository
-from domain_modelling.domain import events, model
+from domain_modelling.domain import commands, events, model
 from domain_modelling.service_layer import handlers, messagebus, unit_of_work
+from domain_modelling.service_layer.handlers import InvalidSku
 
 orm.start_mappers()
-get_session = sessionmaker(bind=create_engine(config.get_postgres_uri()))
 app = Flask(__name__)
+
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger("domain_modelling.flask_app")
+logger.setLevel(logging.DEBUG)
+
+
+@app.route("/add_batch", methods=["POST"])
+def add_batch():
+    eta = request.json["eta"]
+    if eta is not None:
+        eta = datetime.fromisoformat(eta).date()
+    cmd = commands.CreateBatch(
+        request.json["ref"], request.json["sku"], request.json["qty"], eta
+    )
+    uow = unit_of_work.SqlAlchemyUnitOfWork()
+    messagebus.handle(cmd, uow)
+    return "OK", 201
 
 
 @app.route("/allocate", methods=["POST"])
 def allocate_endpoint():
     try:
-        event = events.AllocationRequired(
+        cmd = commands.Allocate(
             request.json["orderid"], request.json["sku"], request.json["qty"]
         )
-        results = messagebus.handle(event, unit_of_work.SqlAlchemyUnitOfWork())
+        uow = unit_of_work.SqlAlchemyUnitOfWork()
+        results = messagebus.handle(cmd, uow)
         batchref = results.pop(0)
-    except (handlers.InvalidSku, model.OutOfStock) as e:
-        return jsonify({"message": str(e)}), 400
-    return jsonify({"batchref": batchref}), 201
-
-
-@app.route("/add_batch", methods=["POST"])
-def add_batch():
-    session = get_session()
-    repo = repository.SqlAlchemyRepository(session)
-    eta = request.json["eta"]
-    if eta is not None:
-        eta = datetime.fromisoformat(eta).date()
-    services.add_batch(
-        request.json["ref"],
-        request.json["sku"],
-        request.json["qty"],
-        eta,
-        repo,
-        session,
-    )
-    return "OK", 201
+    except InvalidSku as e:
+        return {"message": str(e)}, 400
+    return {"batchref": batchref}, 201

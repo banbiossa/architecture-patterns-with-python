@@ -8,7 +8,9 @@ from domain_modelling.adapters import orm
 from domain_modelling.domain import commands
 from domain_modelling.service_layer import messagebus, unit_of_work
 
-logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger("domain_modelling.redis")
+logger.setLevel(logging.DEBUG)
 r = redis.Redis(**config.get_redis_host_and_port())
 
 
@@ -27,3 +29,7 @@ def handle_change_batch_quantity(m):
     data = json.loads(m["data"])
     cmd = commands.ChangeBatchQuantity(ref=data["batchref"], qty=data["qty"])
     messagebus.handle(cmd, uow=unit_of_work.SqlAlchemyUnitOfWork())
+
+
+if __name__ == "__main__":
+    main()
